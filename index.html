@@ -1,0 +1,2866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Employee Quiz Game</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+  <style>
+
+    /* =========================================================
+       GLOBAL
+    ========================================================= */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: white;
+
+      background:
+        radial-gradient(circle at 15% 20%, rgba(130, 50, 255, 0.25), transparent 30%),
+        radial-gradient(circle at 85% 80%, rgba(0, 220, 255, 0.18), transparent 30%),
+        linear-gradient(135deg, #08051d 0%, #120832 45%, #05091e 100%);
+
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
+
+      background-size: 45px 45px;
+      opacity: 0.18;
+    }
+
+    button,
+    input {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+
+    /* =========================================================
+       LOGIN SCREEN
+    ========================================================= */
+
+    #loginScreen {
+      min-height: 100vh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      padding: 30px;
+    }
+
+    .login-container {
+      width: min(1100px, 100%);
+
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+
+      min-height: 620px;
+
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 30px;
+
+      overflow: hidden;
+
+      background: rgba(9, 5, 35, 0.75);
+
+      box-shadow:
+        0 30px 80px rgba(0,0,0,0.55),
+        0 0 80px rgba(160, 50, 255, 0.12);
+
+      backdrop-filter: blur(20px);
+    }
+
+
+    /* LEFT LOGIN SIDE */
+
+    .login-left {
+      position: relative;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      padding: 50px;
+
+      text-align: center;
+
+      background:
+        radial-gradient(circle at center, rgba(124, 48, 255, 0.20), transparent 55%);
+    }
+
+    .trophy {
+      font-size: 70px;
+
+      filter:
+        drop-shadow(0 0 15px rgba(255,200,0,0.5));
+
+      animation: floating 3s ease-in-out infinite;
+    }
+
+    @keyframes floating {
+      0%,100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .game-title-small {
+      margin-top: 20px;
+
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: 6px;
+    }
+
+    .game-title {
+      margin-top: 5px;
+
+      font-size: clamp(65px, 9vw, 105px);
+      line-height: 0.95;
+
+      font-weight: 900;
+      letter-spacing: -4px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ffffff 10%,
+          #d6d6ff 35%,
+          #9f65ff 65%,
+          #00eaff 100%
+        );
+
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+
+      filter:
+        drop-shadow(0 8px 0 rgba(50,20,100,0.7));
+    }
+
+    .game-subtitle {
+      margin-top: 15px;
+
+      font-size: 25px;
+      font-weight: 800;
+
+      letter-spacing: 3px;
+
+      color: #00eaff;
+    }
+
+    .tagline {
+      margin-top: 25px;
+
+      font-size: 18px;
+      font-weight: 700;
+
+      letter-spacing: 2px;
+    }
+
+    .feature-row {
+      margin-top: 45px;
+
+      display: flex;
+      gap: 12px;
+
+      width: 100%;
+      max-width: 550px;
+    }
+
+    .feature {
+      flex: 1;
+
+      padding: 20px 10px;
+
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+
+      background: rgba(255,255,255,0.04);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .feature-title {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .feature-text {
+      margin-top: 5px;
+
+      font-size: 11px;
+      color: #aaa8c5;
+    }
+
+
+    /* RIGHT LOGIN SIDE */
+
+    .login-right {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      padding: 50px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(74, 20, 150, 0.28),
+          rgba(0, 20, 80, 0.18)
+        );
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 390px;
+
+      padding: 40px;
+
+      border-radius: 25px;
+
+      border: 1px solid rgba(190, 100, 255, 0.45);
+
+      background: rgba(15, 9, 50, 0.75);
+
+      box-shadow:
+        inset 0 0 30px rgba(130,50,255,0.08),
+        0 0 40px rgba(130,50,255,0.12);
+    }
+
+    .user-icon {
+      width: 70px;
+      height: 70px;
+
+      margin: 0 auto 20px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      border-radius: 50%;
+
+      font-size: 34px;
+
+      background:
+        linear-gradient(135deg, #00dfff, #b400ff);
+
+      box-shadow:
+        0 0 30px rgba(0,220,255,0.35);
+    }
+
+    .login-card h2 {
+      text-align: center;
+
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .login-description {
+      text-align: center;
+
+      color: #aaa8c5;
+      line-height: 1.5;
+
+      margin-bottom: 30px;
+    }
+
+    .input-label {
+      display: block;
+
+      margin-bottom: 9px;
+
+      font-size: 12px;
+      font-weight: 800;
+
+      letter-spacing: 1.5px;
+
+      color: #00eaff;
+    }
+
+    .employee-input {
+      width: 100%;
+
+      padding: 17px 18px;
+
+      border-radius: 13px;
+
+      border: 1px solid rgba(255,255,255,0.18);
+
+      outline: none;
+
+      background: rgba(0,0,0,0.25);
+
+      color: white;
+
+      font-size: 16px;
+    }
+
+    .employee-input::placeholder {
+      color: #69677f;
+    }
+
+    .employee-input:focus {
+      border-color: #00eaff;
+
+      box-shadow:
+        0 0 0 3px rgba(0,234,255,0.1),
+        0 0 20px rgba(0,234,255,0.12);
+    }
+
+    .start-button {
+      width: 100%;
+
+      margin-top: 20px;
+
+      padding: 17px;
+
+      border: none;
+      border-radius: 14px;
+
+      color: white;
+
+      font-size: 17px;
+      font-weight: 900;
+
+      letter-spacing: 1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          #00dfff,
+          #6f32ff,
+          #e600b8
+        );
+
+      box-shadow:
+        0 10px 30px rgba(190,0,255,0.25);
+
+      transition: 0.25s;
+    }
+
+    .start-button:hover {
+      transform: translateY(-3px);
+
+      box-shadow:
+        0 15px 40px rgba(190,0,255,0.4);
+    }
+
+    .login-note {
+      margin-top: 22px;
+
+      padding: 15px;
+
+      border: 1px dashed rgba(210,100,255,0.5);
+      border-radius: 13px;
+
+      color: #c8aaff;
+
+      font-size: 13px;
+      line-height: 1.5;
+
+      text-align: center;
+    }
+
+
+    /* =========================================================
+       GAME SCREEN
+    ========================================================= */
+
+    #wheelScreen {
+      display: none;
+
+      min-height: 100vh;
+
+      padding: 25px;
+    }
+
+    .game-container {
+      width: min(1250px, 100%);
+      margin: auto;
+    }
+
+    /* HEADER */
+
+    .game-header {
+      display: flex;
+
+      justify-content: space-between;
+      align-items: center;
+
+      padding: 15px 22px;
+
+      border-radius: 18px;
+
+      border: 1px solid rgba(255,255,255,0.12);
+
+      background: rgba(10, 6, 40, 0.75);
+
+      backdrop-filter: blur(15px);
+
+      box-shadow:
+        0 10px 40px rgba(0,0,0,0.25);
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .player-avatar {
+      width: 50px;
+      height: 50px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 14px;
+
+      font-size: 25px;
+
+      background:
+        linear-gradient(135deg,#5930ff,#00dfff);
+    }
+
+    .welcome {
+      font-size: 12px;
+      color: #aaa8c5;
+    }
+
+    .employee-name {
+      margin-top: 2px;
+
+      font-size: 18px;
+      font-weight: 900;
+
+      color: #00eaff;
+    }
+
+    .header-title {
+      font-size: 21px;
+      font-weight: 900;
+
+      letter-spacing: 1px;
+    }
+
+    .home-button {
+      padding: 11px 18px;
+
+      border: 1px solid rgba(255,255,255,0.2);
+
+      border-radius: 30px;
+
+      background: rgba(255,255,255,0.04);
+
+      color: white;
+
+      font-weight: 700;
+
+      transition: 0.2s;
+    }
+
+    .home-button:hover {
+      background: rgba(255,255,255,0.1);
+
+      transform: translateY(-2px);
+    }
+
+
+    /* GAME GRID */
+
+    .game-grid {
+      display: grid;
+
+      grid-template-columns: 240px 1fr 240px;
+
+      gap: 25px;
+
+      margin-top: 25px;
+
+      align-items: center;
+    }
+
+
+    /* SIDE CARDS */
+
+    .side-card {
+      padding: 25px;
+
+      border-radius: 20px;
+
+      border: 1px solid rgba(180,100,255,0.35);
+
+      background:
+        rgba(12, 7, 45, 0.78);
+
+      box-shadow:
+        0 15px 35px rgba(0,0,0,0.25);
+    }
+
+    .side-card + .side-card {
+      margin-top: 20px;
+    }
+
+    .side-title {
+      font-size: 12px;
+      font-weight: 900;
+
+      letter-spacing: 1px;
+
+      color: #aaa8c5;
+    }
+
+    .attempt-number {
+      margin-top: 10px;
+
+      font-size: 48px;
+      font-weight: 900;
+
+      color: #00f0b5;
+    }
+
+    .attempt-total {
+      font-size: 20px;
+      color: #aaa8c5;
+    }
+
+    .attempt-dots {
+      display: flex;
+      gap: 8px;
+
+      margin-top: 12px;
+    }
+
+    .attempt-dot {
+      width: 15px;
+      height: 15px;
+
+      border-radius: 50%;
+
+      border: 1px solid #555;
+    }
+
+    .attempt-dot.used {
+      border: none;
+
+      background: #00e99e;
+
+      box-shadow:
+        0 0 12px rgba(0,233,158,0.6);
+    }
+
+    .tip-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .tip-text {
+      font-size: 13px;
+      line-height: 1.6;
+
+      color: #aaa8c5;
+    }
+
+
+    /* HOW TO PLAY */
+
+    .how-step {
+      display: flex;
+      gap: 12px;
+
+      padding: 15px 0;
+
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .how-step:last-child {
+      border-bottom: none;
+    }
+
+    .how-number {
+      min-width: 30px;
+      height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 50%;
+
+      background:
+        linear-gradient(135deg,#713cff,#d400d4);
+
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .how-text {
+      font-size: 12px;
+      line-height: 1.5;
+
+      color: #c4c1d5;
+    }
+
+
+    /* =========================================================
+       WHEEL
+    ========================================================= */
+
+    .wheel-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .wheel-title {
+      margin-bottom: 20px;
+
+      font-size: 14px;
+
+      color: #aaa8c5;
+
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+
+      width: 430px;
+      height: 430px;
+
+      max-width: 100%;
+    }
+
+    #wheelCanvas {
+      width: 100%;
+      height: 100%;
+
+      display: block;
+
+      filter:
+        drop-shadow(0 0 20px rgba(170,50,255,0.35))
+        drop-shadow(0 0 50px rgba(0,210,255,0.12));
+    }
+
+    .wheel-pointer {
+      position: absolute;
+
+      top: -5px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 5;
+
+      width: 0;
+      height: 0;
+
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 38px solid #ff3e8e;
+
+      filter:
+        drop-shadow(0 0 10px rgba(255,40,130,0.8));
+    }
+
+    .wheel-pointer::after {
+      content: "";
+
+      position: absolute;
+
+      left: -7px;
+      top: -37px;
+
+      width: 14px;
+      height: 14px;
+
+      border-radius: 50%;
+
+      background: white;
+
+      box-shadow:
+        0 0 10px white;
+    }
+
+    .spin-button {
+      margin-top: 20px;
+
+      width: min(390px, 90%);
+
+      padding: 17px 30px;
+
+      border: none;
+      border-radius: 50px;
+
+      color: white;
+
+      font-size: 19px;
+      font-weight: 900;
+
+      letter-spacing: 1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          #00dfff,
+          #7537ff,
+          #f000b8
+        );
+
+      box-shadow:
+        0 10px 35px rgba(230,0,220,0.35);
+
+      transition: 0.25s;
+    }
+
+    .spin-button:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.02);
+
+      box-shadow:
+        0 15px 45px rgba(230,0,220,0.5);
+    }
+
+    .spin-button:disabled {
+      cursor: not-allowed;
+
+      opacity: 0.4;
+
+      box-shadow: none;
+    }
+
+    .category-result {
+      min-height: 25px;
+
+      margin-top: 12px;
+
+      font-size: 17px;
+      font-weight: 800;
+
+      color: #00eaff;
+
+      text-align: center;
+    }
+
+
+    /* =========================================================
+       QUESTION MODAL
+    ========================================================= */
+
+    #questionOverlay {
+      display: none;
+
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 100;
+
+      align-items: center;
+      justify-content: center;
+
+      padding: 20px;
+
+      background:
+        rgba(3,2,20,0.82);
+
+      backdrop-filter: blur(12px);
+    }
+
+    .question-modal {
+      width: min(750px, 100%);
+
+      padding: 30px;
+
+      border-radius: 25px;
+
+      border: 1px solid rgba(200,100,255,0.5);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(20,10,65,0.98),
+          rgba(8,8,38,0.98)
+        );
+
+      box-shadow:
+        0 30px 100px rgba(0,0,0,0.65),
+        0 0 70px rgba(170,40,255,0.2);
+
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.92) translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .question-header {
+      display: flex;
+
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 25px;
+    }
+
+    .question-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      font-weight: 900;
+
+      color: #ff42aa;
+
+      letter-spacing: 1px;
+    }
+
+    .question-icon {
+      width: 40px;
+      height: 40px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      background:
+        linear-gradient(135deg,#ff299b,#7634ff);
+
+      font-size: 21px;
+    }
+
+    .close-question {
+      width: 40px;
+      height: 40px;
+
+      border: none;
+      border-radius: 50%;
+
+      background: rgba(255,255,255,0.06);
+
+      color: #aaa;
+
+      font-size: 25px;
+
+      cursor: pointer;
+    }
+
+    .question-text {
+      padding: 15px 5px 30px;
+
+      font-size: 24px;
+      font-weight: 800;
+
+      line-height: 1.4;
+
+      text-align: center;
+    }
+
+    .answers-grid {
+      display: grid;
+
+      grid-template-columns: 1fr 1fr;
+
+      gap: 15px;
+    }
+
+    .answer-button {
+      min-height: 75px;
+
+      display: flex;
+      align-items: center;
+
+      gap: 15px;
+
+      padding: 12px 18px;
+
+      border-radius: 16px;
+
+      border: 1px solid rgba(255,255,255,0.16);
+
+      background:
+        rgba(255,255,255,0.04);
+
+      color: white;
+
+      text-align: left;
+
+      font-size: 15px;
+
+      transition: 0.2s;
+    }
+
+    .answer-button:hover:not(:disabled) {
+      transform: translateY(-3px);
+
+      border-color: #d83bff;
+
+      background:
+        rgba(150,50,255,0.15);
+
+      box-shadow:
+        0 8px 25px rgba(130,30,255,0.18);
+    }
+
+    .answer-letter {
+      min-width: 43px;
+      height: 43px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 50%;
+
+      background:
+        linear-gradient(135deg,#7138ff,#df20c7);
+
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .answer-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+
+    /* =========================================================
+       RESULT MESSAGE
+    ========================================================= */
+
+    #feedbackMessage {
+      position: fixed;
+
+      top: 30px;
+      left: 50%;
+
+      transform: translate(-50%, -150px);
+
+      z-index: 300;
+
+      min-width: 300px;
+
+      padding: 17px 25px;
+
+      border-radius: 14px;
+
+      text-align: center;
+
+      font-weight: 800;
+
+      opacity: 0;
+
+      transition:
+        transform 0.4s ease,
+        opacity 0.4s ease;
+
+      box-shadow:
+        0 15px 40px rgba(0,0,0,0.4);
+    }
+
+    #feedbackMessage.show {
+      transform: translate(-50%, 0);
+
+      opacity: 1;
+    }
+
+    #feedbackMessage.correct {
+      background:
+        linear-gradient(135deg,#00a86b,#00d99b);
+    }
+
+    #feedbackMessage.incorrect {
+      background:
+        linear-gradient(135deg,#d62562,#ff477e);
+    }
+
+
+    /* =========================================================
+       CONFETTI
+    ========================================================= */
+
+    .confetti {
+      position: fixed;
+
+      width: 8px;
+      height: 15px;
+
+      z-index: 500;
+
+      pointer-events: none;
+
+      animation:
+        confettiFall 1.8s linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform:
+          translateY(-20px)
+          rotate(0deg);
+
+        opacity: 1;
+      }
+
+      100% {
+        transform:
+          translateY(100vh)
+          rotate(720deg);
+
+        opacity: 0;
+      }
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 950px) {
+
+      .login-container {
+        grid-template-columns: 1fr;
+      }
+
+      .login-left {
+        padding: 45px 25px;
+      }
+
+      .login-right {
+        padding: 30px;
+      }
+
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .left-sidebar,
+      .right-sidebar {
+        display: grid;
+
+        grid-template-columns: 1fr 1fr;
+
+        gap: 15px;
+      }
+
+      .side-card + .side-card {
+        margin-top: 0;
+      }
+
+      .wheel-area {
+        order: -1;
+      }
+
+      .header-title {
+        display: none;
+      }
+    }
+
+
+    @media (max-width: 600px) {
+
+      #loginScreen,
+      #wheelScreen {
+        padding: 15px;
+      }
+
+      .login-left {
+        padding: 35px 15px;
+      }
+
+      .game-title {
+        font-size: 65px;
+      }
+
+      .game-title-small {
+        font-size: 18px;
+      }
+
+      .game-subtitle {
+        font-size: 19px;
+      }
+
+      .feature-row {
+        gap: 6px;
+      }
+
+      .feature {
+        padding: 15px 5px;
+      }
+
+      .feature-title {
+        font-size: 10px;
+      }
+
+      .feature-text {
+        font-size: 9px;
+      }
+
+      .login-right {
+        padding: 15px;
+      }
+
+      .login-card {
+        padding: 25px;
+      }
+
+      .game-header {
+        padding: 10px 13px;
+      }
+
+      .player-avatar {
+        width: 42px;
+        height: 42px;
+      }
+
+      .employee-name {
+        font-size: 15px;
+      }
+
+      .wheel-wrapper {
+        width: 330px;
+        height: 330px;
+      }
+
+      .left-sidebar,
+      .right-sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .question-modal {
+        padding: 20px;
+      }
+
+      .question-text {
+        font-size: 19px;
+      }
+
+      .answers-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     LOGIN SCREEN
+========================================================= -->
+
+<div id="loginScreen">
+
+  <div class="login-container">
+
+
+    <!-- LEFT -->
+    <div class="login-left">
+
+      <div class="trophy">🏆</div>
+
+      <div class="game-title-small">
+        EMPLOYEE
+      </div>
+
+      <div class="game-title">
+        QUIZ
+      </div>
+
+      <div class="game-subtitle">
+        GAME
+      </div>
+
+      <div class="tagline">
+        SPIN • ANSWER • WIN
+      </div>
+
+
+      <div class="feature-row">
+
+        <div class="feature">
+          <div class="feature-icon">🎯</div>
+          <div class="feature-title">
+            3 ATTEMPTS
+          </div>
+          <div class="feature-text">
+            PER EMPLOYEE
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">🎡</div>
+          <div class="feature-title">
+            3 CATEGORIES
+          </div>
+          <div class="feature-text">
+            FUN & LEARNING
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">🎁</div>
+          <div class="feature-title">
+            CORRECT ANSWER
+          </div>
+          <div class="feature-text">
+            GET REWARDED
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- RIGHT -->
+    <div class="login-right">
+
+      <div class="login-card">
+
+        <div class="user-icon">
+          👤
+        </div>
+
+        <h2>
+          GET STARTED
+        </h2>
+
+        <p class="login-description">
+          Enter your Employee Number<br>
+          to start the quiz!
+        </p>
+
+
+        <label class="input-label">
+          EMPLOYEE NUMBER
+        </label>
+
+        <input
+          type="text"
+          id="empNoInput"
+          class="employee-input"
+          placeholder="e.g. EMP1234"
+          autocomplete="off"
+        >
+
+
+        <button
+          class="start-button"
+          onclick="startGame()"
+        >
+          START QUIZ &nbsp; →
+        </button>
+
+
+        <div class="login-note">
+          ℹ️ You have <strong>3 attempts</strong>.<br>
+          Make them count!
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     GAME SCREEN
+========================================================= -->
+
+<div id="wheelScreen">
+
+  <div class="game-container">
+
+
+    <!-- HEADER -->
+
+    <header class="game-header">
+
+      <div class="player-info">
+
+        <div class="player-avatar">
+          👤
+        </div>
+
+        <div>
+          <div class="welcome">
+            Welcome,
+          </div>
+
+          <div
+            class="employee-name"
+            id="displayEmpNo"
+          >
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="header-title">
+        🏆 EMPLOYEE QUIZ GAME
+      </div>
+
+
+      <button
+        class="home-button"
+        onclick="goHome()"
+      >
+        🏠 HOME
+      </button>
+
+    </header>
+
+
+
+    <!-- GAME GRID -->
+
+    <div class="game-grid">
+
+
+      <!-- LEFT SIDEBAR -->
+
+      <div class="left-sidebar">
+
+
+        <div class="side-card">
+
+          <div class="side-title">
+            ATTEMPTS REMAINING
+          </div>
+
+          <div>
+            <span
+              class="attempt-number"
+              id="attemptNumber"
+            >
+              3
+            </span>
+
+            <span class="attempt-total">
+              / 3
+            </span>
+          </div>
+
+          <div
+            class="attempt-dots"
+            id="attemptDots"
+          >
+          </div>
+
+        </div>
+
+
+        <div class="side-card">
+
+          <div class="tip-icon">
+            💡
+          </div>
+
+          <div class="side-title">
+            TIP
+          </div>
+
+          <p class="tip-text">
+            Read the question carefully
+            and choose the best answer!
+          </p>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- WHEEL -->
+
+      <div class="wheel-area">
+
+        <div class="wheel-title">
+          Spin the wheel to select your category
+        </div>
+
+
+        <div class="wheel-wrapper">
+
+          <div class="wheel-pointer"></div>
+
+          <canvas
+            id="wheelCanvas"
+            width="430"
+            height="430"
+          >
+          </canvas>
+
+        </div>
+
+
+        <button
+          id="spinButton"
+          class="spin-button"
+          onclick="spinWheel()"
+        >
+          🎡 SPIN THE WHEEL
+        </button>
+
+
+        <div
+          id="resultCategory"
+          class="category-result"
+        >
+        </div>
+
+      </div>
+
+
+
+      <!-- RIGHT SIDEBAR -->
+
+      <div class="right-sidebar">
+
+        <div class="side-card">
+
+          <div class="side-title">
+            HOW TO PLAY
+          </div>
+
+
+          <div class="how-step">
+
+            <div class="how-number">
+              1
+            </div>
+
+            <div class="how-text">
+              Spin the wheel to get a
+              category.
+            </div>
+
+          </div>
+
+
+          <div class="how-step">
+
+            <div class="how-number">
+              2
+            </div>
+
+            <div class="how-text">
+              Answer the question
+              shown.
+            </div>
+
+          </div>
+
+
+          <div class="how-step">
+
+            <div class="how-number">
+              3
+            </div>
+
+            <div class="how-text">
+              Get it right and earn
+              your reward!
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="side-card">
+
+          <div class="tip-icon">
+            🏆
+          </div>
+
+          <div class="side-title">
+            GOOD LUCK!
+          </div>
+
+          <p class="tip-text">
+            Think carefully and
+            enjoy the challenge.
+          </p>
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     QUESTION MODAL
+========================================================= -->
+
+<div
+  id="questionOverlay"
+>
+
+  <div class="question-modal">
+
+
+    <div class="question-header">
+
+      <div class="question-label">
+
+        <div class="question-icon">
+          ?
+        </div>
+
+        QUESTION
+
+      </div>
+
+
+      <button
+        class="close-question"
+        onclick="closeQuestion()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="questionText"
+      class="question-text"
+    >
+    </div>
+
+
+    <div class="answers-grid">
+
+
+      <button
+        id="answerA"
+        class="answer-button"
+        onclick="checkAnswer('A')"
+      >
+        <span class="answer-letter">
+          A
+        </span>
+
+        <span id="optionAText"></span>
+      </button>
+
+
+      <button
+        id="answerB"
+        class="answer-button"
+        onclick="checkAnswer('B')"
+      >
+        <span class="answer-letter">
+          B
+        </span>
+
+        <span id="optionBText"></span>
+      </button>
+
+
+      <button
+        id="answerC"
+        class="answer-button"
+        onclick="checkAnswer('C')"
+      >
+        <span class="answer-letter">
+          C
+        </span>
+
+        <span id="optionCText"></span>
+      </button>
+
+
+      <button
+        id="answerD"
+        class="answer-button"
+        onclick="checkAnswer('D')"
+      >
+        <span class="answer-letter">
+          D
+        </span>
+
+        <span id="optionDText"></span>
+      </button>
+
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- FEEDBACK -->
+
+<div id="feedbackMessage"></div>
+
+
+
+<script>
+
+
+/* =========================================================
+   FIREBASE CONFIGURATION
+========================================================= */
+
+const firebaseConfig = {
+
+  apiKey:
+    "AIzaSyCnpJBDbEM7QGg_NYyCiwdKANrPYse9RUI",
+
+  authDomain:
+    "quiz-game-c2313.firebaseapp.com",
+
+  projectId:
+    "quiz-game-c2313",
+
+  storageBucket:
+    "quiz-game-c2313.firebasestorage.app",
+
+  messagingSenderId:
+    "1057216158854",
+
+  appId:
+    "1:1057216158854:web:4ab1edca597b45f97a8507",
+
+  measurementId:
+    "G-SQ23Z2FJS0"
+
+};
+
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+
+
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let currentEmpNo = "";
+
+let currentQuestion = null;
+
+let attemptsUsed = 0;
+
+const MAX_ATTEMPTS = 3;
+
+let isSpinning = false;
+
+let isAnswering = false;
+
+let currentRotation = 0;
+
+
+
+/* =========================================================
+   CATEGORY SETTINGS
+========================================================= */
+
+const categories = [
+  "APS",
+  "Safety",
+  "General"
+];
+
+const colors = [
+  "#ff2f83",
+  "#00cfc1",
+  "#ffb900"
+];
+
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const canvas =
+  document.getElementById("wheelCanvas");
+
+const ctx =
+  canvas.getContext("2d");
+
+
+
+/* =========================================================
+   START GAME
+========================================================= */
+
+async function startGame() {
+
+  const empNo =
+    document
+      .getElementById("empNoInput")
+      .value
+      .trim();
+
+
+  if (empNo === "") {
+
+    showFeedback(
+      "Please enter your employee number.",
+      "incorrect"
+    );
+
+    return;
+  }
+
+
+  try {
+
+    const snapshot =
+      await db
+        .collection("Results")
+        .where(
+          "employeeNo",
+          "==",
+          empNo
+        )
+        .get();
+
+
+    attemptsUsed = snapshot.size;
+
+    currentEmpNo = empNo;
+
+
+    document
+      .getElementById("displayEmpNo")
+      .innerText = currentEmpNo;
+
+
+    updateAttemptsDisplay();
+
+
+    document
+      .getElementById("loginScreen")
+      .style.display = "none";
+
+
+    document
+      .getElementById("wheelScreen")
+      .style.display = "block";
+
+
+    document
+      .getElementById("resultCategory")
+      .innerText = "";
+
+
+    drawWheel();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showFeedback(
+      "Unable to connect to the quiz database.",
+      "incorrect"
+    );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   ATTEMPTS
+========================================================= */
+
+function updateAttemptsDisplay() {
+
+  const remaining =
+    Math.max(
+      0,
+      MAX_ATTEMPTS - attemptsUsed
+    );
+
+
+  document
+    .getElementById("attemptNumber")
+    .innerText = remaining;
+
+
+  const dots =
+    document.getElementById("attemptDots");
+
+  dots.innerHTML = "";
+
+
+  for (
+    let i = 0;
+    i < MAX_ATTEMPTS;
+    i++
+  ) {
+
+    const dot =
+      document.createElement("div");
+
+    dot.className =
+      "attempt-dot";
+
+
+    if (i < attemptsUsed) {
+
+      dot.classList.add("used");
+
+    }
+
+
+    dots.appendChild(dot);
+
+  }
+
+
+  const spinButton =
+    document.getElementById("spinButton");
+
+
+  if (remaining <= 0) {
+
+    spinButton.disabled = true;
+
+    spinButton.innerText =
+      "✓ ALL ATTEMPTS USED";
+
+  } else {
+
+    spinButton.disabled =
+      isSpinning;
+
+    spinButton.innerText =
+      "🎡 SPIN THE WHEEL";
+
+  }
+
+}
+
+
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function goHome() {
+
+  currentEmpNo = "";
+
+  currentQuestion = null;
+
+  attemptsUsed = 0;
+
+  isSpinning = false;
+
+  isAnswering = false;
+
+  currentRotation = 0;
+
+
+  document
+    .getElementById("empNoInput")
+    .value = "";
+
+
+  document
+    .getElementById("wheelScreen")
+    .style.display = "none";
+
+
+  document
+    .getElementById("loginScreen")
+    .style.display = "flex";
+
+
+  closeQuestion();
+
+
+  document
+    .getElementById("resultCategory")
+    .innerText = "";
+
+
+  updateAttemptsDisplay();
+
+}
+
+
+
+/* =========================================================
+   DRAW WHEEL
+========================================================= */
+
+function drawWheel() {
+
+  const centerX = 215;
+
+  const centerY = 215;
+
+  const radius = 190;
+
+  const sliceAngle =
+    (2 * Math.PI) /
+    categories.length;
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  /* OUTER GLOW RING */
+
+  ctx.beginPath();
+
+  ctx.arc(
+    centerX,
+    centerY,
+    radius + 12,
+    0,
+    2 * Math.PI
+  );
+
+  ctx.strokeStyle =
+    "#a832ff";
+
+  ctx.lineWidth = 10;
+
+  ctx.shadowBlur = 25;
+
+  ctx.shadowColor =
+    "#a832ff";
+
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+
+
+
+  /* WHEEL */
+
+  for (
+    let i = 0;
+    i < categories.length;
+    i++
+  ) {
+
+    const startAngle =
+      i * sliceAngle +
+      currentRotation;
+
+    const endAngle =
+      startAngle +
+      sliceAngle;
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      centerX,
+      centerY
+    );
+
+
+    ctx.arc(
+      centerX,
+      centerY,
+      radius,
+      startAngle,
+      endAngle
+    );
+
+
+    ctx.closePath();
+
+
+    ctx.fillStyle =
+      colors[i];
+
+    ctx.fill();
+
+
+    ctx.strokeStyle =
+      "rgba(255,255,255,0.7)";
+
+    ctx.lineWidth = 3;
+
+    ctx.stroke();
+
+
+
+    /* CATEGORY TEXT */
+
+    ctx.save();
+
+
+    ctx.translate(
+      centerX,
+      centerY
+    );
+
+
+    ctx.rotate(
+      startAngle +
+      sliceAngle / 2
+    );
+
+
+    ctx.textAlign =
+      "right";
+
+    ctx.textBaseline =
+      "middle";
+
+
+    ctx.fillStyle =
+      "#ffffff";
+
+    ctx.font =
+      "900 23px Segoe UI";
+
+
+    ctx.shadowColor =
+      "rgba(0,0,0,0.5)";
+
+    ctx.shadowBlur = 5;
+
+
+    ctx.fillText(
+      categories[i],
+      radius - 25,
+      0
+    );
+
+
+    ctx.restore();
+
+  }
+
+
+
+  /* CENTER CIRCLE */
+
+  ctx.beginPath();
+
+  ctx.arc(
+    centerX,
+    centerY,
+    48,
+    0,
+    2 * Math.PI
+  );
+
+  ctx.fillStyle =
+    "#38118a";
+
+  ctx.fill();
+
+
+  ctx.strokeStyle =
+    "#ffffff";
+
+  ctx.lineWidth = 4;
+
+  ctx.stroke();
+
+
+  /* STAR */
+
+  ctx.fillStyle =
+    "#ffd447";
+
+  ctx.font =
+    "34px Arial";
+
+  ctx.textAlign =
+    "center";
+
+  ctx.textBaseline =
+    "middle";
+
+  ctx.fillText(
+    "★",
+    centerX,
+    centerY + 2
+  );
+
+}
+
+
+
+/* =========================================================
+   SPIN WHEEL
+========================================================= */
+
+function spinWheel() {
+
+  if (isSpinning)
+    return;
+
+
+  if (attemptsUsed >= MAX_ATTEMPTS)
+    return;
+
+
+  isSpinning = true;
+
+  updateAttemptsDisplay();
+
+
+  document
+    .getElementById("resultCategory")
+    .innerText =
+      "Spinning...";
+
+
+  const extraSpins =
+    5 + Math.random() * 3;
+
+
+  const randomStopAngle =
+    Math.random() *
+    2 *
+    Math.PI;
+
+
+  const totalRotation =
+    extraSpins *
+    2 *
+    Math.PI +
+    randomStopAngle;
+
+
+  const duration =
+    4200;
+
+
+  const startTime =
+    performance.now();
+
+
+  const startRotation =
+    currentRotation;
+
+
+
+  function animate(time) {
+
+    const elapsed =
+      time - startTime;
+
+
+    const progress =
+      Math.min(
+        elapsed / duration,
+        1
+      );
+
+
+    /* Smooth ease out */
+
+    const easeOut =
+      1 -
+      Math.pow(
+        1 - progress,
+        4
+      );
+
+
+    currentRotation =
+      startRotation +
+      totalRotation *
+      easeOut;
+
+
+    drawWheel();
+
+
+    if (progress < 1) {
+
+      requestAnimationFrame(
+        animate
+      );
+
+    } else {
+
+      isSpinning = false;
+
+      determineCategory();
+
+      updateAttemptsDisplay();
+
+    }
+
+  }
+
+
+  requestAnimationFrame(
+    animate
+  );
+
+}
+
+
+
+/* =========================================================
+   DETERMINE CATEGORY
+========================================================= */
+
+function determineCategory() {
+
+  const sliceAngle =
+    (2 * Math.PI) /
+    categories.length;
+
+
+  /*
+    Canvas starts at 0 radians on the right.
+    Pointer is at the top = 270 degrees.
+  */
+
+  const pointerAngle =
+    (3 * Math.PI) / 2;
+
+
+  let effectiveAngle =
+    (
+      pointerAngle -
+      currentRotation
+    ) %
+    (2 * Math.PI);
+
+
+  if (effectiveAngle < 0) {
+
+    effectiveAngle +=
+      2 * Math.PI;
+
+  }
+
+
+  const index =
+    Math.floor(
+      effectiveAngle /
+      sliceAngle
+    ) %
+    categories.length;
+
+
+  const selectedCategory =
+    categories[index];
+
+
+  document
+    .getElementById("resultCategory")
+    .innerText =
+      "🎯 Category: " +
+      selectedCategory;
+
+
+  fetchRandomQuestion(
+    selectedCategory
+  );
+
+}
+
+
+
+/* =========================================================
+   FETCH QUESTION
+========================================================= */
+
+async function fetchRandomQuestion(
+  category
+) {
+
+  try {
+
+    const snapshot =
+      await db
+        .collection("Questions")
+        .where(
+          "Category",
+          "==",
+          category
+        )
+        .get();
+
+
+    if (snapshot.empty) {
+
+      showFeedback(
+        "No questions found for " +
+        category +
+        ".",
+        "incorrect"
+      );
+
+      isSpinning = false;
+
+      updateAttemptsDisplay();
+
+      return;
+
+    }
+
+
+    const docs =
+      snapshot.docs;
+
+
+    const randomIndex =
+      Math.floor(
+        Math.random() *
+        docs.length
+      );
+
+
+    const chosenDoc =
+      docs[randomIndex];
+
+
+    currentQuestion = {
+
+      id:
+        chosenDoc.id,
+
+      ...chosenDoc.data()
+
+    };
+
+
+    displayQuestion();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showFeedback(
+      "Unable to load the question.",
+      "incorrect"
+    );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   DISPLAY QUESTION
+========================================================= */
+
+function displayQuestion() {
+
+  if (!currentQuestion)
+    return;
+
+
+  document
+    .getElementById("questionText")
+    .innerText =
+      currentQuestion.Question;
+
+
+  document
+    .getElementById("optionAText")
+    .innerText =
+      currentQuestion.OptionA;
+
+
+  document
+    .getElementById("optionBText")
+    .innerText =
+      currentQuestion.OptionB;
+
+
+  document
+    .getElementById("optionCText")
+    .innerText =
+      currentQuestion.OptionC;
+
+
+  document
+    .getElementById("optionDText")
+    .innerText =
+      currentQuestion.OptionD;
+
+
+  isAnswering = false;
+
+
+  enableAnswerButtons();
+
+
+  document
+    .getElementById("questionOverlay")
+    .style.display =
+      "flex";
+
+}
+
+
+
+/* =========================================================
+   ENABLE ANSWERS
+========================================================= */
+
+function enableAnswerButtons() {
+
+  const buttons = [
+
+    "answerA",
+    "answerB",
+    "answerC",
+    "answerD"
+
+  ];
+
+
+  buttons.forEach(id => {
+
+    document
+      .getElementById(id)
+      .disabled = false;
+
+  });
+
+}
+
+
+
+/* =========================================================
+   DISABLE ANSWERS
+========================================================= */
+
+function disableAnswerButtons() {
+
+  const buttons = [
+
+    "answerA",
+    "answerB",
+    "answerC",
+    "answerD"
+
+  ];
+
+
+  buttons.forEach(id => {
+
+    document
+      .getElementById(id)
+      .disabled = true;
+
+  });
+
+}
+
+
+
+/* =========================================================
+   CHECK ANSWER
+========================================================= */
+
+async function checkAnswer(
+  selectedLetter
+) {
+
+  if (
+    isAnswering ||
+    !currentQuestion
+  ) {
+
+    return;
+
+  }
+
+
+  isAnswering = true;
+
+  disableAnswerButtons();
+
+
+  const correct =
+    String(
+      currentQuestion.CorrectAnswer
+    )
+      .trim()
+      .toUpperCase();
+
+
+  const selected =
+    String(selectedLetter)
+      .trim()
+      .toUpperCase();
+
+
+  const isCorrect =
+    selected === correct;
+
+
+
+  /* Save result to Firebase */
+
+  try {
+
+    await db
+      .collection("Results")
+      .add({
+
+        employeeNo:
+          currentEmpNo,
+
+        questionId:
+          currentQuestion.id,
+
+        category:
+          currentQuestion.Category,
+
+        selectedAnswer:
+          selected,
+
+        correctAnswer:
+          correct,
+
+        isCorrect:
+          isCorrect,
+
+        date:
+          firebase.firestore
+            .FieldValue
+            .serverTimestamp()
+
+      });
+
+  } catch (error) {
+
+    console.error(
+      "Error saving result:",
+      error
+    );
+
+
+    showFeedback(
+      "Your answer could not be saved. Please try again.",
+      "incorrect"
+    );
+
+
+    enableAnswerButtons();
+
+    isAnswering = false;
+
+    return;
+
+  }
+
+
+
+  /* Only count attempt after successfully saving */
+
+  attemptsUsed++;
+
+
+  updateAttemptsDisplay();
+
+
+
+  /* Close question */
+
+  closeQuestion();
+
+
+
+  /* Result */
+
+  if (isCorrect) {
+
+    showFeedback(
+      "🎉 CORRECT! Great job!",
+      "correct"
+    );
+
+
+    createConfetti();
+
+  } else {
+
+    showFeedback(
+      "❌ Incorrect. Correct answer: " +
+      correct,
+      "incorrect"
+    );
+
+  }
+
+
+
+  /* Reset category text */
+
+  setTimeout(() => {
+
+    document
+      .getElementById("resultCategory")
+      .innerText = "";
+
+  }, 2200);
+
+}
+
+
+
+/* =========================================================
+   CLOSE QUESTION
+========================================================= */
+
+function closeQuestion() {
+
+  document
+    .getElementById("questionOverlay")
+    .style.display =
+      "none";
+
+
+
+  isAnswering = false;
+
+  currentQuestion = null;
+
+
+  enableAnswerButtons();
+
+}
+
+
+
+/* =========================================================
+   FEEDBACK
+========================================================= */
+
+function showFeedback(
+  message,
+  type
+) {
+
+  const feedback =
+    document.getElementById(
+      "feedbackMessage"
+    );
+
+
+  feedback.innerText =
+    message;
+
+
+  feedback.className =
+    "";
+
+
+  feedback.classList.add(
+    type
+  );
+
+
+  setTimeout(() => {
+
+    feedback.classList.add(
+      "show"
+    );
+
+  }, 10);
+
+
+  setTimeout(() => {
+
+    feedback.classList.remove(
+      "show"
+    );
+
+  }, 2500);
+
+}
+
+
+
+/* =========================================================
+   CONFETTI
+========================================================= */
+
+function createConfetti() {
+
+  const pieces = 45;
+
+
+  for (
+    let i = 0;
+    i < pieces;
+    i++
+  ) {
+
+    const piece =
+      document.createElement(
+        "div"
+      );
+
+
+    piece.className =
+      "confetti";
+
+
+    piece.style.left =
+      Math.random() *
+      100 +
+      "vw";
+
+
+    piece.style.top =
+      "-20px";
+
+
+    piece.style.transform =
+      "rotate(" +
+      Math.random() * 360 +
+      "deg)";
+
+
+    piece.style.background =
+      [
+        "#ff2f83",
+        "#00eaff",
+        "#ffd447",
+        "#9d4edd",
+        "#00f0b5"
+      ][
+        Math.floor(
+          Math.random() * 5
+        )
+      ];
+
+
+    piece.style.animationDuration =
+      (
+        1.2 +
+        Math.random() * 1.5
+      ) +
+      "s";
+
+
+    document.body.appendChild(
+      piece
+    );
+
+
+    setTimeout(() => {
+
+      piece.remove();
+
+    }, 3000);
+
+  }
+
+}
+
+
+
+/* =========================================================
+   ENTER KEY ON LOGIN
+========================================================= */
+
+document
+  .getElementById("empNoInput")
+  .addEventListener(
+    "keydown",
+    function(event) {
+
+      if (
+        event.key === "Enter"
+      ) {
+
+        startGame();
+
+      }
+
+    }
+  );
+
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+drawWheel();
+
+updateAttemptsDisplay();
+
+</script>
+
+</body>
+</html>
