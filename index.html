@@ -1764,14 +1764,17 @@ async function startGame() {
 
   try {
 
+       const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+
     const snapshot =
       await db
         .collection("Results")
-        .where(
-          "employeeNo",
-          "==",
-          empNo
-        )
+        .where("employeeNo", "==", empNo)
+        .where("date", ">=", startOfDay)
+        .where("date", "<", endOfDay)
         .get();
 
 
