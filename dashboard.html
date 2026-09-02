@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #1C2128;
+    --charcoal-light: #262D38;
+    --steel: #3D5A80;
+    --safety-yellow: #F4B942;
+    --off-white: #F1EEE6;
+    --success: #4CAF7D;
+    --alert: #E4572E;
+    --line: rgba(241, 238, 230, 0.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--charcoal); color: var(--off-white);
+    font-family: 'Inter', sans-serif; padding: 32px 20px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .eyebrow {
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--safety-yellow); margin: 0 0 6px;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; margin: 0 0 24px; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; margin: 36px 0 14px; }
+  .summary-row { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .summary-card {
+    background: var(--charcoal-light); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 20px; flex: 1; min-width: 140px;
+  }
+  .summary-card .label { font-size: 12px; color: rgba(241,238,230,0.6); margin-bottom: 4px; }
+  .summary-card .value { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  input[type="text"] {
+    flex: 1; min-width: 180px; padding: 10px 14px; background: var(--charcoal-light);
+    border: 1px solid var(--line); border-radius: 8px; color: var(--off-white);
+    font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--safety-yellow); }
+  button {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px; border: none;
+    border-radius: 8px; padding: 10px 16px; cursor: pointer; background: var(--safety-yellow); color: var(--charcoal);
+  }
+  button:hover { filter: brightness(1.08); }
+  button.secondary { background: transparent; color: var(--off-white); border: 1px solid var(--line); }
+  button.secondary:hover { border-color: var(--off-white); filter: none; }
+  table {
+    width: 100%; border-collapse: collapse; background: var(--charcoal-light);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  }
+  th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  th {
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.5px;
+    text-transform: uppercase; color: rgba(241,238,230,0.6); cursor: pointer; user-select: none;
+  }
+  th:hover { color: var(--safety-yellow); }
+  tr:last-child td { border-bottom: none; }
+  .rank { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--safety-yellow); }
+  .accuracy-high { color: var(--success); font-weight: 600; }
+  .accuracy-mid { color: var(--safety-yellow); font-weight: 600; }
+  .accuracy-low { color: var(--alert); font-weight: 600; }
+  #loadingMsg, #emptyMsg { text-align: center; padding: 40px; color: rgba(241,238,230,0.5); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="eyebrow">Spin & Score</p>
+  <h1>Results Dashboard</h1>
+
+  <div class="summary-row" id="summaryRow" style="display:none;">
+    <div class="summary-card">
+      <div class="label">Employees Played</div>
+      <div class="value" id="totalEmployees">0</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Total Attempts</div>
+      <div class="value" id="totalAttempts">0</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Overall Accuracy</div>
+      <div class="value" id="overallAccuracy">0%</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search employee number..." onkeyup="renderTable()">
+    <button class="secondary" onclick="loadResults()">Refresh</button>
+    <button onclick="downloadCSV()">Download Excel (CSV)</button>
+  </div>
+
+  <p id="loadingMsg">Loading results...</p>
+  <p id="emptyMsg" style="display:none;">No results recorded yet.</p>
+
+  <table id="resultsTable" style="display:none;">
+    <thead>
+      <tr>
+        <th onclick="sortBy('rank')">#</th>
+        <th onclick="sortBy('employeeNo')">Employee No</th>
+        <th onclick="sortBy('attempts')">Attempts</th>
+        <th onclick="sortBy('correct')">Correct</th>
+        <th onclick="sortBy('accuracy')">Accuracy</th>
+      </tr>
+    </thead>
+    <tbody id="resultsBody"></tbody>
+  </table>
+
+  <div id="categorySection" style="display:none;">
+    <h2>Performance by Category</h2>
+    <table id="categoryTable">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Total Attempts</th>
+          <th>Correct</th>
+          <th>Accuracy</th>
+        </tr>
+      </thead>
+      <tbody id="categoryBody"></tbody>
+    </table>
+  </div>
+
+  <div id="dailySection" style="display:none;">
+    <h2>Participation by Day</h2>
+    <table id="dailyTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Employees Played</th>
+          <th>Total Attempts</th>
+          <th>Accuracy</th>
+        </tr>
+      </thead>
+      <tbody id="dailyBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCnpJBDbEM7QGg_NYyCiwdKANrPYse9RUI",
+    authDomain: "quiz-game-c2313.firebaseapp.com",
+    projectId: "quiz-game-c2313",
+    storageBucket: "quiz-game-c2313.firebasestorage.app",
+    messagingSenderId: "1057216158854",
+    appId: "1:1057216158854:web:4ab1edca597b45f97a8507",
+    measurementId: "G-SQ23Z2FJS0"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let employeeStats = [];
+  let categoryStats = [];
+  let dailyStats = [];
+  let rawResults = [];
+  let currentSort = "accuracy";
+  let sortDescending = true;
+
+  function formatDate(d) {
+    // e.g. "2 Sep 2026"
+    return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  async function loadResults() {
+    document.getElementById("loadingMsg").style.display = "block";
+    document.getElementById("resultsTable").style.display = "none";
+    document.getElementById("emptyMsg").style.display = "none";
+    document.getElementById("summaryRow").style.display = "none";
+    document.getElementById("categorySection").style.display = "none";
+    document.getElementById("dailySection").style.display = "none";
+
+    const snapshot = await db.collection("Results").get();
+
+    if (snapshot.empty) {
+      document.getElementById("loadingMsg").style.display = "none";
+      document.getElementById("emptyMsg").style.display = "block";
+      return;
+    }
+
+    const employeeMap = {};
+    const categoryMap = {};
+    const dailyMap = {}; // key: date string -> { attempts, correct, employeeSet }
+    rawResults = [];
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const empNo = data.employeeNo || "Unknown";
+      const category = data.category || "Unknown";
+      const isCorrect = !!data.isCorrect;
+
+      // resolve date - Firestore Timestamp has .toDate(); fall back to now if missing
+      let dateObj;
+      if (data.date && typeof data.date.toDate === "function") {
+        dateObj = data.date.toDate();
+      } else {
+        dateObj = new Date();
+      }
+      const dayKey = dateObj.getFullYear() + "-" +
+        String(dateObj.getMonth() + 1).padStart(2, "0") + "-" +
+        String(dateObj.getDate()).padStart(2, "0");
+
+      // per-employee
+      if (!employeeMap[empNo]) {
+        employeeMap[empNo] = { employeeNo: empNo, attempts: 0, correct: 0 };
+      }
+      employeeMap[empNo].attempts++;
+      if (isCorrect) employeeMap[empNo].correct++;
+
+      // per-category
+      if (!categoryMap[category]) {
+        categoryMap[category] = { category: category, attempts: 0, correct: 0 };
+      }
+      categoryMap[category].attempts++;
+      if (isCorrect) categoryMap[category].correct++;
+
+      // per-day
+      if (!dailyMap[dayKey]) {
+        dailyMap[dayKey] = { dayKey: dayKey, dateObj: new Date(dayKey), attempts: 0, correct: 0, employees: new Set() };
+      }
+      dailyMap[dayKey].attempts++;
+      if (isCorrect) dailyMap[dayKey].correct++;
+      dailyMap[dayKey].employees.add(empNo);
+
+      // raw row for export
+      rawResults.push({
+        employeeNo: empNo,
+        category: category,
+        correct: isCorrect ? "Correct" : "Incorrect",
+        date: dayKey
+      });
+    });
+
+    employeeStats = Object.values(employeeMap).map(e => ({
+      ...e,
+      accuracy: e.attempts > 0 ? Math.round((e.correct / e.attempts) * 100) : 0
+    }));
+
+    categoryStats = Object.values(categoryMap).map(c => ({
+      ...c,
+      accuracy: c.attempts > 0 ? Math.round((c.correct / c.attempts) * 100) : 0
+    })).sort((a, b) => b.accuracy - a.accuracy);
+
+    dailyStats = Object.values(dailyMap).map(d => ({
+      dayKey: d.dayKey,
+      dateObj: d.dateObj,
+      employeeCount: d.employees.size,
+      attempts: d.attempts,
+      correct: d.correct,
+      accuracy: d.attempts > 0 ? Math.round((d.correct / d.attempts) * 100) : 0
+    })).sort((a, b) => b.dateObj - a.dateObj); // newest first
+
+    const totalAttempts = employeeStats.reduce((sum, e) => sum + e.attempts, 0);
+    const totalCorrect = employeeStats.reduce((sum, e) => sum + e.correct, 0);
+    const overallAccuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+
+    document.getElementById("totalEmployees").innerText = employeeStats.length;
+    document.getElementById("totalAttempts").innerText = totalAttempts;
+    document.getElementById("overallAccuracy").innerText = overallAccuracy + "%";
+    document.getElementById("summaryRow").style.display = "flex";
+
+    document.getElementById("loadingMsg").style.display = "none";
+    document.getElementById("resultsTable").style.display = "table";
+    document.getElementById("categorySection").style.display = "block";
+    document.getElementById("dailySection").style.display = "block";
+
+    renderTable();
+    renderCategoryTable();
+    renderDailyTable();
+  }
+
+  function sortBy(field) {
+    if (field === "rank") field = "accuracy";
+    if (currentSort === field) {
+      sortDescending = !sortDescending;
+    } else {
+      currentSort = field;
+      sortDescending = true;
+    }
+    renderTable();
+  }
+
+  function renderTable() {
+    const search = document.getElementById("searchInput").value.trim().toLowerCase();
+    let filtered = employeeStats.filter(e => e.employeeNo.toLowerCase().includes(search));
+
+    filtered.sort((a, b) => {
+      let valA = a[currentSort];
+      let valB = b[currentSort];
+      if (typeof valA === "string") {
+        return sortDescending ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      }
+      return sortDescending ? valB - valA : valA - valB;
+    });
+
+    const tbody = document.getElementById("resultsBody");
+    tbody.innerHTML = "";
+
+    filtered.forEach((e, index) => {
+      const accClass = e.accuracy >= 80 ? "accuracy-high" : (e.accuracy >= 50 ? "accuracy-mid" : "accuracy-low");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="rank">${index + 1}</td>
+        <td>${e.employeeNo}</td>
+        <td>${e.attempts}</td>
+        <td>${e.correct}</td>
+        <td class="${accClass}">${e.accuracy}%</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderCategoryTable() {
+    const tbody = document.getElementById("categoryBody");
+    tbody.innerHTML = "";
+    categoryStats.forEach(c => {
+      const accClass = c.accuracy >= 80 ? "accuracy-high" : (c.accuracy >= 50 ? "accuracy-mid" : "accuracy-low");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${c.category}</td>
+        <td>${c.attempts}</td>
+        <td>${c.correct}</td>
+        <td class="${accClass}">${c.accuracy}%</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderDailyTable() {
+    const tbody = document.getElementById("dailyBody");
+    tbody.innerHTML = "";
+    dailyStats.forEach(d => {
+      const accClass = d.accuracy >= 80 ? "accuracy-high" : (d.accuracy >= 50 ? "accuracy-mid" : "accuracy-low");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${formatDate(d.dateObj)}</td>
+        <td>${d.employeeCount}</td>
+        <td>${d.attempts}</td>
+        <td class="${accClass}">${d.accuracy}%</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function downloadCSV() {
+    if (rawResults.length === 0) {
+      alert("No data to export yet.");
+      return;
+    }
+
+    let csv = "Employee No,Category,Result,Date\n";
+    rawResults.forEach(r => {
+      csv += `${r.employeeNo},${r.category},${r.correct},${r.date}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "quiz-results.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  loadResults();
+</script>
+
+</body>
+</html>
